@@ -59,7 +59,8 @@ async def create_user(user: UserCreate, db: db_dependency):
     existing_email = user_email.scalars().first()
     if existing_user or existing_email:
         raise HTTPException(
-            status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="User already exist"
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail="Email already registered",
         )
     password = hash_password(user.password)
     new_user = Users(
@@ -327,13 +328,6 @@ async def delete_user(user_id: int, current_user: current_user, db: db_dependenc
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Un-Authorized Action"
         )
-    # result = await db.execute(select(Users).where(Users.id == user_id))
-    # user = result.scalars().first()
-    # if not user:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_404_NOT_FOUND,
-    #         detail="User not found",
-    #     )
     old_filename = current_user.image_file
     await db.delete(current_user)
     await db.commit()

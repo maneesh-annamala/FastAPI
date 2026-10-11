@@ -45,6 +45,12 @@ A full-stack asynchronous Blog application built with **FastAPI**, **SQLAlchemy 
   - **API Endpoints**: Modularized router architecture under `/routers`.
 - **🛠️ Smart Exception Handling**:
   - Dual response system handling errors gracefully: returning JSON for `/api` requests and custom styled HTML (`error.html`) for browser requests.
+- **🧪 Comprehensive Automated Testing Suite (pytest)**:
+  - 100% endpoint coverage with 52 automated tests spanning all REST API routes and Jinja2 template views.
+  - **Asynchronous Test Client**: High-performance async HTTP requests via `httpx.AsyncClient` powered by `anyio`.
+  - **Database Transaction Isolation**: Clean per-test database isolation utilizing SQLAlchemy `NullPool`, connection savepoints, and automatic rollbacks in `conftest.py` — zero database pollution between test runs.
+  - **AWS S3 Mocking with `moto`**: Full cloud storage emulation with `moto.mock_aws` to test multipart profile picture uploads and S3 file deletion safely without live AWS credentials.
+  - **Mocked Background Tasks**: Asynchronous SMTP email verification using `unittest.mock.AsyncMock` to validate password reset token generation and delivery.
 
 ---
 
@@ -62,6 +68,7 @@ A full-stack asynchronous Blog application built with **FastAPI**, **SQLAlchemy 
 | **Auth & Security** | `PyJWT`, `pwdlib` (Argon2), `hashlib`, `secrets` |
 | **Email & Async SMTP** | `aiosmtplib`, Jinja2 HTML Templates |
 | **Image Processing** | [Pillow (PIL)](https://python-pillow.org/) |
+| **Testing & Mocking** | [pytest](https://pytest.org/), `anyio`, [HTTPX](https://www.python-httpx.org/), [Moto](http://docs.getmoto.org/) (AWS S3 mock) |
 | **Templating** | Jinja2 Templates + HTML/CSS Static Files |
 | **Package Manager** | [`uv`](https://github.com/astral-sh/uv) |
 
@@ -84,6 +91,12 @@ project_blogs/
 ├── templates/             # Jinja2 HTML templates (layout, home, login, user_posts, etc.)
 │   └── email/
 │       └── password_reset.html # Responsive HTML email template for password reset
+├── tests/                 # Automated test suite (52 tests, 100% endpoint coverage)
+│   ├── conftest.py        # Async DB savepoint fixtures, moto S3 client, and test client setup
+│   ├── test_image.jpg     # Sample image asset for profile picture upload testing
+│   ├── test_post.py       # Full CRUD, pagination, and authorization tests for /api/posts
+│   ├── test_users.py      # Registration, auth, profile picture, and password management tests
+│   └── test_views.py      # Server-rendered HTML template view tests (main.py)
 ├── alembic.ini            # Alembic configuration settings
 ├── auth.py                # Password hashing, JWT access token & SHA-256 reset token utilities
 ├── aws_bucket_policy.json # AWS S3 public read bucket policy reference
@@ -166,6 +179,16 @@ project_blogs/
    - 🌐 **Web Interface**: `http://127.0.0.1:8000/`
    - 📚 **Swagger Interactive API Docs**: `http://127.0.0.1:8000/docs`
 
+9. **Run Automated Test Suite (pytest)**:
+   Execute all 52 tests with async execution, DB rollback isolation, and S3 mocking:
+   ```bash
+   uv run pytest
+   ```
+   Run with detailed output and verbosity:
+   ```bash
+   uv run pytest -v
+   ```
+
 ---
 
 ## 🔄 Useful Alembic Migration Commands
@@ -199,6 +222,7 @@ project_blogs/
 | **Day 4** | Password Reset & Email Integration | Built asynchronous backend password reset flow (`/forgot-password`, `/reset-password`, `/me/password`), `PasswordResetToken` table model with SHA-256 token hashing, `aiosmtplib` async SMTP background email delivery, and HTML email templates. |
 | **Day 5** | PostgreSQL & Alembic Migrations | Upgraded database architecture from SQLite to **PostgreSQL** (`postgresql+asyncpg`). Integrated **Alembic** schema migrations with async database connection support (`alembic/env.py`). Created baseline schema migration and initial schema updates (`likes` column on `posts`). |
 | **Day 6** | AWS S3 Cloud Media Storage | Migrated user profile picture storage from local disk to **AWS S3**. Integrated `boto3` for asynchronous S3 upload (`_upload_to_s3`) and deletion (`_delete_from_s3`), updated `Users.image_path` property to return full S3 URLs, added AWS IAM & Bucket policy files, and created `check_s3.py` connection verification tool. |
+| **Day 7** | Comprehensive Testing Suite with Pytest | Implemented 100% automated test coverage across all 52 tests using **pytest**, `anyio`, and `httpx.AsyncClient`. Configured database transaction rollback isolation with savepoints (`NullPool`), AWS S3 cloud mocking with `moto.mock_aws`, async background task email mocking, and end-to-end tests for all Posts & Users REST endpoints and Jinja2 frontend routes. |
 
 ---
 

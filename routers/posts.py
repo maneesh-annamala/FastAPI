@@ -116,7 +116,8 @@ async def update_post_partial(
         )
     if post.user_id != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User didn't Matched"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not authorized to update this post",
         )
 
     update_post = post_data.model_dump(exclude_unset=True)
