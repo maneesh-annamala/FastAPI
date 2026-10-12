@@ -261,7 +261,10 @@ async def get_user_posts(
     total = count_result.scalar() or 0
     result = await db.execute(
         select(Posts)
-        .options(selectinload(Posts.author))
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
         .where(Posts.user_id == user.id)
         .order_by(Posts.date_posted.desc())
         .offset(skip)

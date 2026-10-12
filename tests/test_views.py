@@ -36,6 +36,30 @@ async def test_post_detail_page_success(client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_post_detail_page_with_comments(client: AsyncClient):
+    await create_test_user(client)
+    token = await login_user(client)
+
+    post_resp = await client.post(
+        "/api/posts",
+        json={"title": "Template Post With Comments", "content": "Template content for page"},
+        headers=auth_header(token),
+    )
+    post_id = post_resp.json()["id"]
+
+    await client.post(
+        f"/api/posts/{post_id}/comments",
+        json={"comment": "Awesome view test comment!"},
+        headers=auth_header(token),
+    )
+
+    response = await client.get(f"/posts/{post_id}")
+    assert response.status_code == 200
+    assert "Awesome view test comment!" in response.text
+    assert "Comments (<span id=\"commentsCount\">1</span>)" in response.text
+
+
+@pytest.mark.anyio
 async def test_post_detail_page_not_found(client: AsyncClient):
     response = await client.get("/posts/999999")
     assert response.status_code == 404

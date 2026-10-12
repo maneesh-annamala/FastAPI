@@ -49,6 +49,28 @@ class UpdatePost(PostBase):
     content: str | None = Field(default=None, min_length=10)
 
 
+class CommentBase(BaseModel):
+    comment: str = Field(min_length=1)
+
+
+class CommentCreate(CommentBase):
+    pass
+
+
+class CommentUpdate(CommentBase):
+    pass
+
+
+class CommentResponse(CommentBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    post_id: int
+    author_id: int
+    date_commented: datetime
+    comment_author: UserPublic
+
+
 class PostResponse(PostBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,6 +78,7 @@ class PostResponse(PostBase):
     user_id: int
     date_posted: datetime
     author: UserPublic
+    comments: list[CommentResponse] = []
 
 
 class PaginatedPostsResponse(BaseModel):

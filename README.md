@@ -36,8 +36,19 @@ A full-stack asynchronous Blog application built with **FastAPI**, **SQLAlchemy 
   - **Paginated API Endpoints**: `/api/posts` and `/api/users/{user_id}/posts` support `skip` and `limit` query parameters, returning a `PaginatedPostsResponse` schema (`total`, `skip`, `limit`, `has_more`, `posts`).
   - **Interactive "Load More" Feed**: Client-side async pagination on Home and User Posts pages via JavaScript Fetch API and dynamic DOM injection.
   - **Database Efficiency**: Optimized count and slice queries using SQLAlchemy `func.count()`, `offset()`, and `limit()`.
+- **💬 Post Comments & Interaction**:
+  - Relational `Comment` model (`comments` table) mapped via SQLAlchemy ORM, linked to users and posts with `cascade="all, delete-orphan"` cleanup.
+  - Version-controlled database migration applied via Alembic (`e060c95e124d_added_comments_table.py`).
+  - Eager loading optimization using `selectinload(Posts.comments).selectinload(Comment.comment_author)` across posts and template routes to eliminate N+1 queries.
+  - RESTful API endpoints in `/api/posts`:
+    - `POST /api/posts/{post_id}/comments`: Authenticated comment creation with author association.
+    - `PATCH /api/posts/{post_id}/comments/{comment_id}`: Comment editing with strict author-only authorization.
+    - `DELETE /api/posts/{post_id}/comments/{comment_id}`: Comment deletion with strict author-only authorization.
+  - Individual post detail UI (`templates/post.html`) featuring comment counter, author avatars, timestamps, and quick action buttons with Bootstrap Icons.
+  - Authentication guard automatically redirecting unauthenticated users to `/login` upon focusing or submitting the comment form.
+  - Bootstrap modals for inline comment editing and confirmation dialogs before deletion.
 - **📝 Post & User Management**:
-  - Relational Database Models with `Users`, `Posts`, and `PasswordResetToken` mapped via SQLAlchemy ORM.
+  - Relational Database Models with `Users`, `Posts`, `PasswordResetToken`, and `Comment` mapped via SQLAlchemy ORM.
   - Eager loading with `selectinload` for optimized N+1 query prevention.
 - **🎨 Hybrid Layout (Web UI + REST API)**:
   - **Jinja2 Templates**: Dynamic server-side rendering for `Home`, `Login`, `Register`, `Account`, `Post detail`, and `User Posts` pages.
@@ -46,7 +57,7 @@ A full-stack asynchronous Blog application built with **FastAPI**, **SQLAlchemy 
 - **🛠️ Smart Exception Handling**:
   - Dual response system handling errors gracefully: returning JSON for `/api` requests and custom styled HTML (`error.html`) for browser requests.
 - **🧪 Comprehensive Automated Testing Suite (pytest)**:
-  - 100% endpoint coverage with 52 automated tests spanning all REST API routes and Jinja2 template views.
+  - 100% endpoint coverage with 62 automated tests spanning all REST API routes, comment operations, and Jinja2 template views.
   - **Asynchronous Test Client**: High-performance async HTTP requests via `httpx.AsyncClient` powered by `anyio`.
   - **Database Transaction Isolation**: Clean per-test database isolation utilizing SQLAlchemy `NullPool`, connection savepoints, and automatic rollbacks in `conftest.py` — zero database pollution between test runs.
   - **AWS S3 Mocking with `moto`**: Full cloud storage emulation with `moto.mock_aws` to test multipart profile picture uploads and S3 file deletion safely without live AWS credentials.
@@ -91,10 +102,10 @@ project_blogs/
 ├── templates/             # Jinja2 HTML templates (layout, home, login, user_posts, etc.)
 │   └── email/
 │       └── password_reset.html # Responsive HTML email template for password reset
-├── tests/                 # Automated test suite (52 tests, 100% endpoint coverage)
+├── tests/                 # Automated test suite (62 tests, 100% endpoint coverage)
 │   ├── conftest.py        # Async DB savepoint fixtures, moto S3 client, and test client setup
 │   ├── test_image.jpg     # Sample image asset for profile picture upload testing
-│   ├── test_post.py       # Full CRUD, pagination, and authorization tests for /api/posts
+│   ├── test_post.py       # Full CRUD, comments, pagination, and authorization tests for /api/posts
 │   ├── test_users.py      # Registration, auth, profile picture, and password management tests
 │   └── test_views.py      # Server-rendered HTML template view tests (main.py)
 ├── alembic.ini            # Alembic configuration settings
@@ -107,7 +118,7 @@ project_blogs/
 ├── email_utils.py         # Async SMTP email dispatching via aiosmtplib & Jinja2 rendering
 ├── image_utils.py         # Pillow image cropping/resizing & AWS S3 upload/delete utilities
 ├── main.py                # App entrypoint, lifespan manager, Jinja rendering & error handlers
-├── models.py              # SQLAlchemy ORM models (Users, Posts, PasswordResetToken)
+├── models.py              # SQLAlchemy ORM models (Users, Posts, PasswordResetToken, Comment)
 ├── populates_db.py        # Database seed script for test users, posts, and profile images
 ├── schemas.py             # Pydantic schemas (UserCreate, ForgetPasswordRequest, ResetPasswordRequest, etc.)
 ├── .env.example           # Template for environment configuration including S3 & PostgreSQL settings
@@ -180,7 +191,7 @@ project_blogs/
    - 📚 **Swagger Interactive API Docs**: `http://127.0.0.1:8000/docs`
 
 9. **Run Automated Test Suite (pytest)**:
-   Execute all 52 tests with async execution, DB rollback isolation, and S3 mocking:
+   Execute all 62 tests with async execution, DB rollback isolation, and S3 mocking:
    ```bash
    uv run pytest
    ```
@@ -223,6 +234,7 @@ project_blogs/
 | **Day 5** | PostgreSQL & Alembic Migrations | Upgraded database architecture from SQLite to **PostgreSQL** (`postgresql+asyncpg`). Integrated **Alembic** schema migrations with async database connection support (`alembic/env.py`). Created baseline schema migration and initial schema updates (`likes` column on `posts`). |
 | **Day 6** | AWS S3 Cloud Media Storage | Migrated user profile picture storage from local disk to **AWS S3**. Integrated `boto3` for asynchronous S3 upload (`_upload_to_s3`) and deletion (`_delete_from_s3`), updated `Users.image_path` property to return full S3 URLs, added AWS IAM & Bucket policy files, and created `check_s3.py` connection verification tool. |
 | **Day 7** | Comprehensive Testing Suite with Pytest | Implemented 100% automated test coverage across all 52 tests using **pytest**, `anyio`, and `httpx.AsyncClient`. Configured database transaction rollback isolation with savepoints (`NullPool`), AWS S3 cloud mocking with `moto.mock_aws`, async background task email mocking, and end-to-end tests for all Posts & Users REST endpoints and Jinja2 frontend routes. |
+| **Day 8** | Comments Feature & Eager Loading | Built full-stack post comments functionality. Added `Comment` ORM model, applied Alembic migration to PostgreSQL, optimized database queries with `selectinload` for comments and comment authors, implemented authenticated REST endpoints (`POST`, `PATCH`, `DELETE`) with author authorization checks, added post page UI with Bootstrap Icons, edit/delete modals, and auth redirect, and expanded test suite to 62 tests. |
 
 ---
 

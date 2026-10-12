@@ -24,7 +24,10 @@ async def get_posts(
     total = count_result.scalar() or 0
     result = await db.execute(
         select(Posts)
-        .options(selectinload(Posts.author))
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
         .order_by(Posts.date_posted.desc())
         .offset(skip)
         .limit(limit)
@@ -64,14 +67,19 @@ async def create_post(post: PostCreate, db: db_dependency, current_user: current
     )
     db.add(new_post)
     await db.commit()
-    await db.refresh(new_post, attribute_names=["author"])
+    await db.refresh(new_post, attribute_names=["author", "comments"])
     return new_post
 
 
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post(post_id: int, db: db_dependency):
     result = await db.execute(
-        select(Posts).options(selectinload(Posts.author)).where(Posts.id == post_id)
+        select(Posts)
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
+        .where(Posts.id == post_id)
     )
     post = result.scalars().first()
     if post:
@@ -84,7 +92,12 @@ async def update_post_full(
     post_data: PostCreate, post_id: int, db: db_dependency, current_user: current_user
 ):
     result = await db.execute(
-        select(Posts).options(selectinload(Posts.author)).where(Posts.id == post_id)
+        select(Posts)
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
+        .where(Posts.id == post_id)
     )
     post = result.scalars().first()
     if not post:
@@ -100,7 +113,7 @@ async def update_post_full(
     post.user_id = current_user.id
 
     await db.commit()
-    await db.refresh(post, attribute_names=["author"])
+    await db.refresh(post, attribute_names=["author", "comments"])
     return post
 
 
@@ -125,7 +138,7 @@ async def update_post_partial(
         setattr(post, field, val)
 
     await db.commit()
-    await db.refresh(post, attribute_names=["author"])
+    await db.refresh(post, attribute_names=["author", "comments"])
     return post
 
 
@@ -142,4 +155,87 @@ async def delete_post(post_id: int, current_user: current_user, db: db_dependenc
             status_code=status.HTTP_403_FORBIDDEN, detail="User didn't Matched"
         )
     await db.delete(post)
+    await db.commit()
+
+
+@router.post(
+    "/{post_id}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_comment(
+    post_id: int,
+    comment_data: CommentCreate,
+    db: db_dependency,
+    current_user: current_user,
+):
+    result = await db.execute(select(Posts).where(Posts.id == post_id))
+    post = result.scalars().first()
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
+        )
+
+    new_comment = Comment(
+        comment=comment_data.comment,
+        post_id=post_id,
+        author_id=current_user.id,
+    )
+    db.add(new_comment)
+    await db.commit()
+    await db.refresh(new_comment, attribute_names=["comment_author"])
+    return new_comment
+
+
+@router.patch("/{post_id}/comments/{comment_id}", response_model=CommentResponse)
+@router.patch("/comments/{comment_id}", response_model=CommentResponse, include_in_schema=False)
+async def update_comment(
+    comment_id: int,
+    comment_data: CommentUpdate,
+    db: db_dependency,
+    current_user: current_user,
+    post_id: int | None = None,
+):
+    result = await db.execute(
+        select(Comment)
+        .options(selectinload(Comment.comment_author))
+        .where(Comment.id == comment_id)
+    )
+    comment = result.scalars().first()
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
+        )
+    if comment.author_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User didn't Matched",
+        )
+
+    comment.comment = comment_data.comment
+    await db.commit()
+    await db.refresh(comment, attribute_names=["comment_author"])
+    return comment
+
+
+@router.delete("/{post_id}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
+async def delete_comment(
+    comment_id: int,
+    db: db_dependency,
+    current_user: current_user,
+    post_id: int | None = None,
+):
+    result = await db.execute(select(Comment).where(Comment.id == comment_id))
+    comment = result.scalars().first()
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
+        )
+    if comment.author_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User didn't Matched"
+        )
+
+    await db.delete(comment)
     await db.commit()

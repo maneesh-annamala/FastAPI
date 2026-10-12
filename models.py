@@ -24,6 +24,7 @@ class Users(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    user_comment: Mapped[list[Comment]] = relationship(back_populates="comment_author",cascade="all, delete-orphan")
 
     @property
     def image_path(self) -> str:
@@ -45,6 +46,10 @@ class Posts(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     author: Mapped[Users] = relationship(back_populates="posts")
+    comments: Mapped[list[Comment]] = relationship(
+        back_populates="blog_comments",
+        cascade="all, delete-orphan",
+    )
 
 
 class PasswordResetToken(Base):
@@ -63,3 +68,13 @@ class PasswordResetToken(Base):
     )
 
     user: Mapped[Users] = relationship(back_populates="reset_tokens")
+
+class Comment(Base):
+    __tablename__ = "comments"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id"))
+    comment: Mapped[str] = mapped_column(Text)
+    date_commented : Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    comment_author: Mapped[Users] = relationship(back_populates="user_comment")
+    blog_comments: Mapped[Posts] = relationship(back_populates="comments")

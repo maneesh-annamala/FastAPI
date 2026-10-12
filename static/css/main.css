@@ -293,3 +293,26 @@ a.article-title:focus {
 .modal-header.bg-danger .modal-title {
   color: #ffffff !important;
 }
+
+/* Comment Section */
+.comment-item {
+  background: var(--color-bg-content);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease;
+}
+
+.comment-item:hover {
+  border-color: var(--color-border-light);
+}
+
+.comment-text {
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.comment-actions .btn {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.8rem;
+  line-height: 1;
+}

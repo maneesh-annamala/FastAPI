@@ -47,7 +47,10 @@ async def home(request: Request, db: db_dependency):
 
     result = await db.execute(
         select(Posts)
-        .options(selectinload(Posts.author))
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
         .order_by(Posts.date_posted.desc())
         .limit(settings.max_posts_per_user)
     )
@@ -71,7 +74,12 @@ async def home(request: Request, db: db_dependency):
 @app.get("/posts/{post_id}", include_in_schema=False)
 async def post_page(request: Request, post_id: int, db: db_dependency):
     result = await db.execute(
-        select(Posts).options(selectinload(Posts.author)).where(Posts.id == post_id)
+        select(Posts)
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
+        .where(Posts.id == post_id)
     )
     post = result.scalars().first()
     if post:
@@ -105,7 +113,10 @@ async def user_posts_page(
 
     result = await db.execute(
         select(Posts)
-        .options(selectinload(Posts.author))
+        .options(
+            selectinload(Posts.author),
+            selectinload(Posts.comments).selectinload(Comment.comment_author),
+        )
         .where(Posts.user_id == user_id)
         .order_by(Posts.date_posted.desc())
         .limit(settings.max_posts_per_user)
